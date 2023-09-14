@@ -96,6 +96,21 @@ class Proxmox:
             lambda: self.get_vm_by_id(id).status.post("shutdown"),
             lambda: self.get_vm_status_by_id(id) == "stopped")
 
+    def execute_command(self, id, command, no_wait=False):
+        vm = self.get_vm_by_id(id)
+        logging.info(f"Executing `{command}` on VM id: {id}")
+        pid = vm.agent("exec").post(command=command)["pid"]
+        if not no_wait:
+            status = vm.agent("exec-status").get(pid=pid)
+            logging.info(f"Status is: {status}")
+
+    def adjust_hostname(self, id):
+        logging.info("Setting hostname")
+        self.execute_command(id, f"sed -i \"s/.*/agent-{id}/g\" /etc/hostname")
+        logging.info("Rebooting VM to apply hostname")
+        self.execute_command(id, "reboot", no_wait=True)
+        self.wait_for_qemu_agent_response(id)
+
     def set_up(self):
         new_id = self._generate_new_id()
         new_name = f"agent-{new_id}"
@@ -107,6 +122,7 @@ class Proxmox:
         self.start_vm_by_id(new_id)
         logging.info(f"New VM {new_name} started correctly!")
         self.wait_for_qemu_agent_response(new_id)
+        self.adjust_hostname(new_id)
         vm_ip = self.get_vm_ip_by_id(new_id)
         logging.info(f"VM {new_id} IP is: {vm_ip}")
         return vm_ip
