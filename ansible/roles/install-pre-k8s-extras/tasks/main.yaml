@@ -1,0 +1,20 @@
+- name: Ensure br_netfilter is loaded on boot
+  ansible.builtin.lineinfile:
+    path: /etc/modules
+    regexp: '^br_netfilter'
+    line: br_netfilter
+  notify:
+    - Reboot Machine
+- ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+- name: Disable SWAP
+  replace:
+    path: /etc/fstab
+    regexp: '^(/.*swap.*)$'
+    replace: '# \1'
+  notify:
+    - Reboot Machine

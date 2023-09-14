@@ -1,0 +1,8 @@
+# ansible-galaxy install geerlingguy.containerd
+# add -e containerd_config_cgroup_driver_systemd=true
+- hosts: all
+  become: true
+  roles:
+    - geerlingguy.containerd
+    - install-pre-k8s-extras
+    - install-k8s
